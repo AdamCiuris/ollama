@@ -10,14 +10,15 @@ services:
 
     runtime: nvidia
     environment:
-      - NVIDIA_VISIBLE_DEVICES=all
-      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
+      - NVIDIA_VISIBLE_DEVICES=${NVIDIA_VISIBLE_DEVICES}
+      - NVIDIA_DRIVER_CAPABILITIES=${NVIDIA_DRIVER_CAPABILITIES}
+      - OLLAMA_NO_CLOUD=${OLLAMA_NO_CLOUD}
 
     entrypoint: >
       sh -c "
         ollama serve &
         sleep 5 &&
-        ollama pull tinyllama &&
+        ollama pull ${OLLAMA_MODEL} &&
         wait
       "
 
@@ -25,14 +26,18 @@ services:
     image: ghcr.io/open-webui/open-webui:latest
     container_name: open-webui
     restart: unless-stopped
+    ports:
+      - "${WEBUI_PORT}:8080"
     depends_on:
       - ollama
     environment:
-      - OLLAMA_BASE_URL=http://ollama:11434
-      - WEBUI_AUTH=true
-      - WEBUI_NAME=RTX3050 Ollama Server
+      - OLLAMA_BASE_URL=${OLLAMA_BASE_URL}
+      - WEBUI_AUTH=${WEBUI_AUTH}
+      - WEBUI_NAME=${WEBUI_NAME}
     volumes:
-      - webui_data:/app/backend/data
+      - webui_data:/app/backend/data # host on windows is C:\*whatever*\ProgramData\Docker\volumes\webui_data\_data
+      # stmpfs   /mnt/whateveronhost   tmpfs   defaults,size=2G   0 0
+      # sudo mount -t tmpfs -o size=2G tmpfs /mnt/whateveronhost
 
   cloudflared:
     image: cloudflare/cloudflared:latest

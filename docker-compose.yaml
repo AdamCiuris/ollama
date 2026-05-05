@@ -22,6 +22,19 @@ services:
         wait
       "
 
+  whisper:
+    image: fedirz/faster-whisper-server:latest-cuda
+    container_name: whisper
+    restart: unless-stopped
+    runtime: nvidia
+    environment:
+      - WHISPER_MODEL=${WHISPER_MODEL:-base}
+      - WHISPER_DEVICE=cuda
+      - NVIDIA_VISIBLE_DEVICES=${NVIDIA_VISIBLE_DEVICES}
+      - NVIDIA_DRIVER_CAPABILITIES=${NVIDIA_DRIVER_CAPABILITIES}
+    volumes:
+      - whisper_data:/root/.cache/huggingface
+
   webui:
     image: ghcr.io/open-webui/open-webui:latest
     container_name: open-webui
@@ -30,10 +43,16 @@ services:
       - "${WEBUI_PORT}:8080"
     depends_on:
       - ollama
+      - whisper
     environment:
       - OLLAMA_BASE_URL=${OLLAMA_BASE_URL}
       - WEBUI_AUTH=${WEBUI_AUTH}
       - WEBUI_NAME=${WEBUI_NAME}
+      - AUDIO_STT_ENGINE=openai
+      - AUDIO_STT_OPENAI_API_BASE_URL=http://whisper:8000/v1
+      - AUDIO_STT_OPENAI_API_KEY=cant-be-empty
+      - AUDIO_STT_MODEL=base
+      - ENABLE_AUDIO_TRANSCRIPTION=true
     volumes:
       - webui_data:/app/backend/data # host on windows is C:\*whatever*\ProgramData\Docker\volumes\webui_data\_data
       # stmpfs   /mnt/whateveronhost   tmpfs   defaults,size=2G   0 0
@@ -52,3 +71,4 @@ services:
 volumes:
   ollama_data:
   webui_data:
+  whisper_data:
